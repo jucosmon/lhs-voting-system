@@ -30,6 +30,21 @@ type Candidate = {
   };
 };
 
+const POSITION_ORDER = [
+  "President",
+  "Vice-President",
+  "Secretary",
+  "Treasurer",
+  "Auditor",
+  "Public Information Officer",
+  "Protocol Officer",
+  "Grade Level Representative",
+];
+
+const positionRank = new Map(
+  POSITION_ORDER.map((position, index) => [position, index]),
+);
+
 export default function BallotPage() {
   const params = useParams();
   const router = useRouter();
@@ -80,7 +95,19 @@ export default function BallotPage() {
       return true;
     });
 
-    setCandidates(filtered as Candidate[]);
+    const sorted = [...filtered].sort((a, b) => {
+      const rankA = positionRank.get(a.position) ?? POSITION_ORDER.length;
+      const rankB = positionRank.get(b.position) ?? POSITION_ORDER.length;
+      if (rankA !== rankB) return rankA - rankB;
+
+      if (a.position === "Grade Level Representative") {
+        return (a.target_grade_level ?? 0) - (b.target_grade_level ?? 0);
+      }
+
+      return a.full_name.localeCompare(b.full_name);
+    });
+
+    setCandidates(sorted as Candidate[]);
     setLoading(false);
   };
 
