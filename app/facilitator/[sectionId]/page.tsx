@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { CheckCircle, Circle, Edit2, Plus, Trash2, Vote } from "lucide-react";
+import { CheckCircle, Circle, MoreVertical, Plus, Vote } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -44,6 +44,9 @@ export default function FacilitatorPortal() {
   const [newStudentName, setNewStudentName] = useState("");
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [voteFilter, setVoteFilter] = useState("all");
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -169,6 +172,21 @@ export default function FacilitatorPortal() {
 
   const votedCount = students.filter((student) => student.has_voted).length;
   const totalCount = students.length;
+
+  const filteredStudents = students.filter((student) => {
+    const matchesQuery = student.full_name
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase());
+
+    const matchesStatus =
+      voteFilter === "all"
+        ? true
+        : voteFilter === "voted"
+          ? student.has_voted
+          : !student.has_voted;
+
+    return matchesQuery && matchesStatus;
+  });
 
   const groupedResults = sectionResults.reduce<
     Record<string, ResultCandidate[]>
@@ -322,11 +340,30 @@ export default function FacilitatorPortal() {
 
         <div className="bg-white rounded-xl shadow-lg border border-slate-200">
           <div className="p-6 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900">Voter List</h2>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Voter List</h2>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search student name"
+                  className="h-10 w-full sm:w-64"
+                />
+                <select
+                  value={voteFilter}
+                  onChange={(event) => setVoteFilter(event.target.value)}
+                  className="h-10 rounded-lg border border-slate-300 px-3 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="voted">Voted</option>
+                  <option value="pending">Not voted</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {students.map((student) => (
+            {filteredStudents.map((student) => (
               <div
                 key={student.id}
                 className="p-6 hover:bg-slate-50 transition-colors"
@@ -357,7 +394,7 @@ export default function FacilitatorPortal() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
                       {student.has_voted ? (
                         <CheckCircle className="w-8 h-8 text-green-600 shrink-0" />
@@ -377,44 +414,67 @@ export default function FacilitatorPortal() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {!student.has_voted && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="lg"
-                            onClick={() => setEditingStudent(student.id)}
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="lg"
-                            onClick={() =>
-                              handleDeleteStudent(student.id, student.has_voted)
-                            }
-                          >
-                            <Trash2 className="w-5 h-5 text-red-600" />
-                          </Button>
-                          <Button
-                            size="lg"
-                            onClick={() => handleStartVoting(student.id)}
-                            className="gap-2 px-6"
-                          >
-                            <Vote className="w-5 h-5" />
-                            Start Voting
-                          </Button>
-                        </>
+                        <Button
+                          size="lg"
+                          onClick={() => handleStartVoting(student.id)}
+                          className="gap-2 px-6"
+                        >
+                          <Vote className="w-5 h-5" />
+                          Start Voting
+                        </Button>
                       )}
+                      <div className="relative">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="lg"
+                          onClick={() =>
+                            setMenuOpenId(
+                              menuOpenId === student.id ? null : student.id,
+                            )
+                          }
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </Button>
+                        {menuOpenId === student.id && (
+                          <div className="absolute right-0 mt-2 w-40 rounded-lg border border-slate-200 bg-white shadow-lg z-10">
+                            <button
+                              type="button"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50"
+                              onClick={() => {
+                                setEditingStudent(student.id);
+                                setMenuOpenId(null);
+                              }}
+                            >
+                              Edit name
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
+                              onClick={() => {
+                                setMenuOpenId(null);
+                                handleDeleteStudent(
+                                  student.id,
+                                  student.has_voted,
+                                );
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             ))}
 
-            {students.length === 0 && (
+            {filteredStudents.length === 0 && (
               <div className="p-12 text-center text-slate-500">
-                No students added yet. Use the form above to add students.
+                No matching students found.
               </div>
             )}
           </div>
