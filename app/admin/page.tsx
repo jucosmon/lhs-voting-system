@@ -55,17 +55,27 @@ export default function AdminDashboard() {
 
     setResetting(true);
 
-    await supabase
+    const { error: deleteError } = await supabase
       .from("votes")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("students")
       .update({ has_voted: false, voted_at: null })
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
     setResetting(false);
+
+    if (deleteError || updateError) {
+      alert(
+        deleteError?.message ||
+          updateError?.message ||
+          "Reset failed. Please try again.",
+      );
+      return;
+    }
+
     alert("Voting has been reset.");
   };
 

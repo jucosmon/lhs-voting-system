@@ -151,3 +151,4 @@ create policy "Public update candidates" on candidates for update using (true);
 create policy "Public delete candidates" on candidates for delete using (true);
 
 create policy "Public write votes" on votes for insert with check (true);
+create policy "Public delete votes" on votes for delete using (true);
