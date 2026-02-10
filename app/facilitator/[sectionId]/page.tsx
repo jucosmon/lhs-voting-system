@@ -20,6 +20,18 @@ type Student = {
   voted_at: string | null;
 };
 
+type ResultCandidate = {
+  id: string;
+  full_name: string;
+  position: string;
+  target_grade_level: number | null;
+  partylist: {
+    name: string;
+    color_hex: string;
+  };
+  vote_count: number;
+};
+
 export default function FacilitatorPortal() {
   const params = useParams();
   const router = useRouter();
@@ -27,6 +39,7 @@ export default function FacilitatorPortal() {
 
   const [section, setSection] = useState<Section | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [sectionResults, setSectionResults] = useState<ResultCandidate[]>([]);
   const [newStudentName, setNewStudentName] = useState("");
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const supabase = createClient();
@@ -35,8 +48,9 @@ export default function FacilitatorPortal() {
     if (!Number.isFinite(sectionId)) return;
     loadSection();
     loadStudents();
+    loadSectionResults();
 
-    const channel = supabase
+    const studentsChannel = supabase
       .channel("students-changes")
       .on(
         "postgres_changes",
@@ -50,8 +64,23 @@ export default function FacilitatorPortal() {
       )
       .subscribe();
 
+    const votesChannel = supabase
+      .channel("votes-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "votes",
+          filter: `section_id=eq.${sectionId}`,
+        },
+        () => loadSectionResults(),
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(studentsChannel);
+      supabase.removeChannel(votesChannel);
     };
   }, [sectionId]);
 
@@ -71,6 +100,33 @@ export default function FacilitatorPortal() {
       .eq("section_id", sectionId)
       .order("full_name");
     setStudents(data ?? []);
+  };
+
+  const loadSectionResults = async () => {
+    const { data: candidates } = await supabase
+      .from("candidates")
+      .select(
+        "id, full_name, position, target_grade_level, partylist:partylists(name, color_hex)",
+      )
+      .order("position");
+
+    const { data: votes } = await supabase
+      .from("votes")
+      .select("candidate_id")
+      .eq("section_id", sectionId);
+
+    const voteCounts = new Map<string, number>();
+    votes?.forEach((vote) => {
+      const candidateId = vote.candidate_id as string;
+      voteCounts.set(candidateId, (voteCounts.get(candidateId) ?? 0) + 1);
+    });
+
+    const resultsWithZeros = (candidates ?? []).map((candidate) => ({
+      ...(candidate as unknown as Omit<ResultCandidate, "vote_count">),
+      vote_count: voteCounts.get(candidate.id) ?? 0,
+    }));
+
+    setSectionResults(resultsWithZeros as ResultCandidate[]);
   };
 
   const handleAddStudent = async (event: React.FormEvent) => {
@@ -111,6 +167,21 @@ export default function FacilitatorPortal() {
   const votedCount = students.filter((student) => student.has_voted).length;
   const totalCount = students.length;
 
+  const groupedResults = sectionResults.reduce<
+    Record<string, ResultCandidate[]>
+  >((acc, result) => {
+    const key = result.target_grade_level
+      ? `${result.position} (Grade ${result.target_grade_level})`
+      : result.position;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(result);
+    return acc;
+  }, {});
+
+  Object.keys(groupedResults).forEach((key) => {
+    groupedResults[key].sort((a, b) => b.vote_count - a.vote_count);
+  });
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-md">
@@ -150,6 +221,73 @@ export default function FacilitatorPortal() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 mb-8">
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-xl font-bold text-slate-900">Section Tally</h2>
+            <p className="text-sm text-slate-600">
+              Live count for this section only
+            </p>
+          </div>
+          <div className="p-6 space-y-6">
+            {Object.entries(groupedResults).map(([position, candidates]) => {
+              const maxVotes = Math.max(
+                ...candidates.map((candidate) => candidate.vote_count),
+                1,
+              );
+
+              return (
+                <div key={position} className="space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-600">
+                    {position}
+                  </h3>
+                  {candidates.map((candidate) => {
+                    const percentage = (candidate.vote_count / maxVotes) * 100;
+
+                    return (
+                      <div key={candidate.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-slate-900">
+                              {candidate.full_name}
+                            </span>
+                            <span
+                              className="text-xs px-2 py-1 rounded"
+                              style={{
+                                backgroundColor: `${candidate.partylist.color_hex}20`,
+                                color: candidate.partylist.color_hex,
+                              }}
+                            >
+                              {candidate.partylist.name}
+                            </span>
+                          </div>
+                          <span className="text-lg font-semibold text-slate-900">
+                            {candidate.vote_count}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: candidate.partylist.color_hex,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {Object.keys(groupedResults).length === 0 && (
+              <div className="text-center text-slate-500 py-8">
+                No candidates available yet.
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-lg border border-slate-200">
           <div className="p-6 border-b border-slate-200">
             <h2 className="text-xl font-bold text-slate-900">Voter List</h2>
@@ -190,9 +328,9 @@ export default function FacilitatorPortal() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       {student.has_voted ? (
-                        <CheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+                        <CheckCircle className="w-8 h-8 text-green-600 shrink-0" />
                       ) : (
-                        <Circle className="w-8 h-8 text-slate-300 flex-shrink-0" />
+                        <Circle className="w-8 h-8 text-slate-300 shrink-0" />
                       )}
                       <div>
                         <p className="text-lg font-semibold text-slate-900">

@@ -203,7 +203,7 @@ export default function BallotPage() {
                             borderLeftColor: candidate.partylist.color_hex,
                           }}
                         >
-                          <div className="flex-shrink-0">
+                          <div className="shrink-0">
                             {isSelected ? (
                               <CheckCircle className="w-10 h-10 text-blue-600" />
                             ) : (
