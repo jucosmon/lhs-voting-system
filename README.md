@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lungsodaan High School SSLG Elections Hub
 
-## Getting Started
+Kiosk-ready voting system for LHS SSLG officers and grade level representatives.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router)
+- Supabase (Auth, Database, Realtime)
+- Tailwind CSS
+- Lucide Icons
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The full schema and the `process_vote` RPC function live in [supabase/schema.sql](supabase/schema.sql).
 
-## Learn More
+### Vote Processing (RPC)
 
-To learn more about Next.js, take a look at the following resources:
+`process_vote(student_id, selections)` accepts a JSON array of selections like:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```json
+[
+  { "position": "President", "candidate_id": "<uuid>" },
+  { "position": "Vice-President", "candidate_id": "<uuid>" }
+]
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The function inserts all votes in one transaction and marks the student as
+`has_voted = true`.
 
-## Deploy on Vercel
+## App Routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `/` Home + portal entry points
+- `/admin` Admin dashboard (sections, parties, candidates)
+- `/facilitator/[sectionId]` Facilitator portal for a section
+- `/ballot/[studentId]` Student ballot with grade-shift logic
+- `/results` Realtime results dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- Grade shift logic: voters see representatives for `grade_level + 1`. Grade 12
+  voters see no grade representatives.
+- The UI is designed for touch kiosks with high-contrast buttons.
