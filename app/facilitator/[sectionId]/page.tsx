@@ -50,6 +50,7 @@ export default function FacilitatorPortal() {
   const [manageUnlocked, setManageUnlocked] = useState(false);
   const [managePin, setManagePin] = useState("");
   const [manageError, setManageError] = useState("");
+  const [showTally, setShowTally] = useState(false);
   const supabase = createClient();
 
   const manageStorageKey = `lhs-facilitator-manage-${sectionId}`;
@@ -344,69 +345,95 @@ export default function FacilitatorPortal() {
       <main className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 mb-8">
           <div className="p-6 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900">Section Tally</h2>
-            <p className="text-sm text-slate-600">
-              Live count for this section only
-            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Section Tally
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Live count for this section only
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTally((value) => !value)}
+                aria-expanded={showTally}
+              >
+                {showTally ? "Hide Tally" : "Show Tally"}
+              </Button>
+            </div>
           </div>
-          <div className="p-6 space-y-6">
-            {Object.entries(groupedResults).map(([position, candidates]) => {
-              const maxVotes = Math.max(
-                ...candidates.map((candidate) => candidate.vote_count),
-                1,
-              );
-
-              return (
-                <div key={position} className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-600">
-                    {position}
-                  </h3>
-                  {candidates.map((candidate) => {
-                    const percentage = (candidate.vote_count / maxVotes) * 100;
+          {showTally && (
+            <div className="p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Object.entries(groupedResults).map(
+                  ([position, candidates]) => {
+                    const maxVotes = Math.max(
+                      ...candidates.map((candidate) => candidate.vote_count),
+                      1,
+                    );
 
                     return (
-                      <div key={candidate.id} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold text-slate-900">
-                              {candidate.full_name}
-                            </span>
-                            <span
-                              className="text-xs px-2 py-1 rounded"
-                              style={{
-                                backgroundColor: `${candidate.partylist.color_hex}20`,
-                                color: candidate.partylist.color_hex,
-                              }}
-                            >
-                              {candidate.partylist.name}
-                            </span>
-                          </div>
-                          <span className="text-lg font-semibold text-slate-900">
-                            {candidate.vote_count}
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                          <div
-                            className="h-full"
-                            style={{
-                              width: `${percentage}%`,
-                              backgroundColor: candidate.partylist.color_hex,
-                            }}
-                          />
-                        </div>
+                      <div
+                        key={position}
+                        className="rounded-lg border border-slate-200 p-4 space-y-3"
+                      >
+                        <h3 className="text-sm font-semibold text-slate-600">
+                          {position}
+                        </h3>
+                        {candidates.map((candidate) => {
+                          const percentage =
+                            (candidate.vote_count / maxVotes) * 100;
+
+                          return (
+                            <div key={candidate.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-semibold text-slate-900">
+                                    {candidate.full_name}
+                                  </span>
+                                  <span
+                                    className="text-xs px-2 py-1 rounded"
+                                    style={{
+                                      backgroundColor: `${candidate.partylist.color_hex}20`,
+                                      color: candidate.partylist.color_hex,
+                                    }}
+                                  >
+                                    {candidate.partylist.name}
+                                  </span>
+                                </div>
+                                <span className="text-lg font-semibold text-slate-900">
+                                  {candidate.vote_count}
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                                <div
+                                  className="h-full"
+                                  style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor:
+                                      candidate.partylist.color_hex,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
-                  })}
-                </div>
-              );
-            })}
-
-            {Object.keys(groupedResults).length === 0 && (
-              <div className="text-center text-slate-500 py-8">
-                No candidates available yet.
+                  },
+                )}
               </div>
-            )}
-          </div>
+
+              {Object.keys(groupedResults).length === 0 && (
+                <div className="text-center text-slate-500 py-8">
+                  No candidates available yet.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-lg border border-slate-200">
