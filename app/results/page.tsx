@@ -22,6 +22,21 @@ type ResultCandidate = {
   vote_count: number;
 };
 
+const POSITION_ORDER = [
+  "President",
+  "Vice-President",
+  "Secretary",
+  "Treasurer",
+  "Auditor",
+  "Public Information Officer",
+  "Protocol Officer",
+  "Grade Level Representative",
+];
+
+const positionRank = new Map(
+  POSITION_ORDER.map((position, index) => [position, index]),
+);
+
 export default function ResultsPage() {
   const [results, setResults] = useState<ResultCandidate[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -100,20 +115,36 @@ export default function ResultsPage() {
     groupedResults[key].sort((a, b) => b.vote_count - a.vote_count);
   });
 
-  const quickWinners = Object.entries(groupedResults).map(
-    ([position, candidates]) => {
-      if (candidates.length === 0) {
-        return { position, leaders: [] as ResultCandidate[] };
+  const orderedGroupedResults = Object.entries(groupedResults).sort(
+    ([, candidatesA], [, candidatesB]) => {
+      const firstA = candidatesA[0];
+      const firstB = candidatesB[0];
+      const rankA = positionRank.get(firstA?.position) ?? POSITION_ORDER.length;
+      const rankB = positionRank.get(firstB?.position) ?? POSITION_ORDER.length;
+      if (rankA !== rankB) return rankA - rankB;
+
+      if (firstA?.position === "Grade Level Representative") {
+        return (
+          (firstA.target_grade_level ?? 0) - (firstB?.target_grade_level ?? 0)
+        );
       }
 
-      const topVotes = candidates[0].vote_count;
-      const leaders = candidates.filter(
-        (candidate) => candidate.vote_count === topVotes,
-      );
-
-      return { position, leaders };
+      return 0;
     },
   );
+
+  const quickWinners = orderedGroupedResults.map(([position, candidates]) => {
+    if (candidates.length === 0) {
+      return { position, leaders: [] as ResultCandidate[] };
+    }
+
+    const topVotes = candidates[0].vote_count;
+    const leaders = candidates.filter(
+      (candidate) => candidate.vote_count === topVotes,
+    );
+
+    return { position, leaders };
+  });
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
@@ -229,67 +260,73 @@ export default function ResultsPage() {
             </div>
           </div>
         )}
-        {Object.entries(groupedResults).map(([position, candidates]) => {
-          const maxVotes = Math.max(
-            ...candidates.map((candidate) => candidate.vote_count),
-            1,
-          );
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {orderedGroupedResults.map(([position, candidates]) => {
+            const totalVotes = Math.max(
+              candidates.reduce(
+                (sum, candidate) => sum + candidate.vote_count,
+                0,
+              ),
+              1,
+            );
 
-          return (
-            <div key={position} className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Users className="w-6 h-6" />
-                {position}
-              </h2>
+            return (
+              <div key={position} className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <Users className="w-6 h-6" />
+                  {position}
+                </h2>
 
-              <div className="space-y-4">
-                {candidates.map((candidate, index) => {
-                  const percentage = (candidate.vote_count / maxVotes) * 100;
-                  const isLeading = index === 0;
+                <div className="space-y-4">
+                  {candidates.map((candidate, index) => {
+                    const percentage =
+                      (candidate.vote_count / totalVotes) * 100;
+                    const isLeading = index === 0;
 
-                  return (
-                    <div key={candidate.id}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          {isLeading && (
-                            <Trophy className="w-5 h-5 text-yellow-500" />
-                          )}
-                          <span className="font-semibold text-slate-900">
-                            {candidate.full_name}
+                    return (
+                      <div key={candidate.id}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            {isLeading && (
+                              <Trophy className="w-5 h-5 text-yellow-500" />
+                            )}
+                            <span className="font-semibold text-slate-900">
+                              {candidate.full_name}
+                            </span>
+                            <span
+                              className="text-sm px-2 py-1 rounded"
+                              style={{
+                                backgroundColor: `${candidate.partylist.color_hex}20`,
+                                color: candidate.partylist.color_hex,
+                              }}
+                            >
+                              {candidate.partylist.name}
+                            </span>
+                          </div>
+                          <span className="text-2xl font-bold text-slate-900">
+                            {candidate.vote_count}
                           </span>
-                          <span
-                            className="text-sm px-2 py-1 rounded"
+                        </div>
+
+                        <div className="w-full bg-slate-200 rounded-full h-8 overflow-hidden">
+                          <div
+                            className="h-full transition-all duration-500 flex items-center justify-end px-3 text-white font-semibold"
                             style={{
-                              backgroundColor: `${candidate.partylist.color_hex}20`,
-                              color: candidate.partylist.color_hex,
+                              width: `${percentage}%`,
+                              backgroundColor: candidate.partylist.color_hex,
                             }}
                           >
-                            {candidate.partylist.name}
-                          </span>
-                        </div>
-                        <span className="text-2xl font-bold text-slate-900">
-                          {candidate.vote_count}
-                        </span>
-                      </div>
-
-                      <div className="w-full bg-slate-200 rounded-full h-8 overflow-hidden">
-                        <div
-                          className="h-full transition-all duration-500 flex items-center justify-end px-3 text-white font-semibold"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor: candidate.partylist.color_hex,
-                          }}
-                        >
-                          {percentage > 10 && `${percentage.toFixed(1)}%`}
+                            {percentage > 10 && `${percentage.toFixed(1)}%`}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         {Object.keys(groupedResults).length === 0 && (
           <div className="text-center py-16 text-slate-500">

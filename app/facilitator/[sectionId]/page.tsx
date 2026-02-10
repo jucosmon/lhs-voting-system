@@ -33,6 +33,21 @@ type ResultCandidate = {
   vote_count: number;
 };
 
+const POSITION_ORDER = [
+  "President",
+  "Vice-President",
+  "Secretary",
+  "Treasurer",
+  "Auditor",
+  "Public Information Officer",
+  "Protocol Officer",
+  "Grade Level Representative",
+];
+
+const positionRank = new Map(
+  POSITION_ORDER.map((position, index) => [position, index]),
+);
+
 export default function FacilitatorPortal() {
   const params = useParams();
   const router = useRouter();
@@ -239,6 +254,24 @@ export default function FacilitatorPortal() {
     groupedResults[key].sort((a, b) => b.vote_count - a.vote_count);
   });
 
+  const orderedGroupedResults = Object.entries(groupedResults).sort(
+    ([, candidatesA], [, candidatesB]) => {
+      const firstA = candidatesA[0];
+      const firstB = candidatesB[0];
+      const rankA = positionRank.get(firstA?.position) ?? POSITION_ORDER.length;
+      const rankB = positionRank.get(firstB?.position) ?? POSITION_ORDER.length;
+      if (rankA !== rankB) return rankA - rankB;
+
+      if (firstA?.position === "Grade Level Representative") {
+        return (
+          (firstA.target_grade_level ?? 0) - (firstB?.target_grade_level ?? 0)
+        );
+      }
+
+      return 0;
+    },
+  );
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-md">
@@ -368,63 +401,64 @@ export default function FacilitatorPortal() {
           {showTally && (
             <div className="p-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Object.entries(groupedResults).map(
-                  ([position, candidates]) => {
-                    const maxVotes = Math.max(
-                      ...candidates.map((candidate) => candidate.vote_count),
-                      1,
-                    );
+                {orderedGroupedResults.map(([position, candidates]) => {
+                  const totalVotes = Math.max(
+                    candidates.reduce(
+                      (sum, candidate) => sum + candidate.vote_count,
+                      0,
+                    ),
+                    1,
+                  );
 
-                    return (
-                      <div
-                        key={position}
-                        className="rounded-lg border border-slate-200 p-4 space-y-3"
-                      >
-                        <h3 className="text-sm font-semibold text-slate-600">
-                          {position}
-                        </h3>
-                        {candidates.map((candidate) => {
-                          const percentage =
-                            (candidate.vote_count / maxVotes) * 100;
+                  return (
+                    <div
+                      key={position}
+                      className="rounded-lg border border-slate-200 p-4 space-y-3"
+                    >
+                      <h3 className="text-sm font-semibold text-slate-600">
+                        {position}
+                      </h3>
+                      {candidates.map((candidate) => {
+                        const percentage =
+                          (candidate.vote_count / totalVotes) * 100;
 
-                          return (
-                            <div key={candidate.id} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-semibold text-slate-900">
-                                    {candidate.full_name}
-                                  </span>
-                                  <span
-                                    className="text-xs px-2 py-1 rounded"
-                                    style={{
-                                      backgroundColor: `${candidate.partylist.color_hex}20`,
-                                      color: candidate.partylist.color_hex,
-                                    }}
-                                  >
-                                    {candidate.partylist.name}
-                                  </span>
-                                </div>
-                                <span className="text-lg font-semibold text-slate-900">
-                                  {candidate.vote_count}
+                        return (
+                          <div key={candidate.id} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="font-semibold text-slate-900">
+                                  {candidate.full_name}
+                                </span>
+                                <span
+                                  className="text-xs px-2 py-1 rounded"
+                                  style={{
+                                    backgroundColor: `${candidate.partylist.color_hex}20`,
+                                    color: candidate.partylist.color_hex,
+                                  }}
+                                >
+                                  {candidate.partylist.name}
                                 </span>
                               </div>
-                              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                                <div
-                                  className="h-full"
-                                  style={{
-                                    width: `${percentage}%`,
-                                    backgroundColor:
-                                      candidate.partylist.color_hex,
-                                  }}
-                                />
-                              </div>
+                              <span className="text-lg font-semibold text-slate-900">
+                                {candidate.vote_count}
+                              </span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  },
-                )}
+                            <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="h-full"
+                                style={{
+                                  width: `${percentage}%`,
+                                  backgroundColor:
+                                    candidate.partylist.color_hex,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
 
               {Object.keys(groupedResults).length === 0 && (
