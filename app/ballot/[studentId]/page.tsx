@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircle, Vote } from "lucide-react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -148,15 +149,27 @@ export default function BallotPage() {
     <div className="min-h-screen bg-linear-to-br from-indigo-50 to-purple-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            SSLG Election Ballot
-          </h1>
-          <p className="text-lg text-slate-600">
-            {student.full_name} · Section {student.section.name}
-          </p>
-          <p className="text-sm text-slate-500 mt-2">
-            Select one candidate for each position
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                SSLG Election Ballot
+              </h1>
+              <p className="text-lg text-slate-600">
+                {student.full_name} · Section {student.section.name}
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                Select one candidate for each position
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => router.back()}>
+                Back
+              </Button>
+              <Link href="/">
+                <Button variant="outline">Home</Button>
+              </Link>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">

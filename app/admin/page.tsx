@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const ADMIN_PIN = "LHS2025";
@@ -48,16 +49,24 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
         <div className="container mx-auto px-4 py-16 max-w-lg">
           <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Shield className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  Admin Access
-                </h1>
-                <p className="text-sm text-slate-600">
-                  Enter the PIN to continue
-                </p>
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <Shield className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Admin Access
+                  </h1>
+                  <p className="text-sm text-slate-600">
+                    Enter the PIN to continue
+                  </p>
+                </div>
               </div>
+              <Link
+                href="/"
+                className="text-sm font-semibold text-blue-600 hover:underline"
+              >
+                Back to Home
+              </Link>
             </div>
 
             <form onSubmit={handleUnlock} className="space-y-4">
@@ -102,9 +111,14 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLock}>
-              Lock Admin
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/">
+                <Button variant="outline">Home</Button>
+              </Link>
+              <Button variant="outline" onClick={handleLock}>
+                Lock Admin
+              </Button>
+            </div>
           </div>
         </div>
       </header>

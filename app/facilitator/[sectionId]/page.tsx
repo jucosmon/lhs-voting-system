@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircle, Circle, Edit2, Plus, Trash2, Vote } from "lucide-react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -41,6 +42,7 @@ export default function FacilitatorPortal() {
   const [students, setStudents] = useState<Student[]>([]);
   const [sectionResults, setSectionResults] = useState<ResultCandidate[]>([]);
   const [newStudentName, setNewStudentName] = useState("");
+  const [showAddStudent, setShowAddStudent] = useState(false);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const supabase = createClient();
 
@@ -139,6 +141,7 @@ export default function FacilitatorPortal() {
     });
 
     setNewStudentName("");
+    setShowAddStudent(false);
     loadStudents();
   };
 
@@ -195,6 +198,18 @@ export default function FacilitatorPortal() {
                 <p className="text-sm text-slate-600">
                   Grade {section.grade_level} · Facilitator Portal
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href="/facilitator">
+                    <Button variant="outline" size="sm">
+                      Back to Sections
+                    </Button>
+                  </Link>
+                  <Link href="/">
+                    <Button variant="outline" size="sm">
+                      Home
+                    </Button>
+                  </Link>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold text-blue-600">
@@ -205,18 +220,35 @@ export default function FacilitatorPortal() {
             </div>
           )}
 
-          <form onSubmit={handleAddStudent} className="flex gap-2">
-            <Input
-              value={newStudentName}
-              onChange={(event) => setNewStudentName(event.target.value)}
-              placeholder="Enter student's full name"
-              className="h-14 text-lg flex-1"
-            />
-            <Button type="submit" size="lg" className="gap-2 px-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              Add, edit, or remove students before they vote.
+            </p>
+            <Button
+              type="button"
+              size="lg"
+              className="gap-2 px-6"
+              onClick={() => setShowAddStudent((value) => !value)}
+            >
               <Plus className="w-5 h-5" />
-              Add Student
+              {showAddStudent ? "Close" : "Add New Student"}
             </Button>
-          </form>
+          </div>
+
+          {showAddStudent && (
+            <form onSubmit={handleAddStudent} className="mt-4 flex gap-2">
+              <Input
+                value={newStudentName}
+                onChange={(event) => setNewStudentName(event.target.value)}
+                placeholder="Enter student's full name"
+                className="h-14 text-lg flex-1"
+                autoFocus
+              />
+              <Button type="submit" size="lg" className="gap-2 px-8">
+                Add Student
+              </Button>
+            </form>
+          )}
         </div>
       </header>
 

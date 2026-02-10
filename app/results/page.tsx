@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { BarChart, Trophy, Users } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Section = {
@@ -25,6 +26,7 @@ export default function ResultsPage() {
   const [results, setResults] = useState<ResultCandidate[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState("all");
+  const [showWinners, setShowWinners] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -98,6 +100,21 @@ export default function ResultsPage() {
     groupedResults[key].sort((a, b) => b.vote_count - a.vote_count);
   });
 
+  const quickWinners = Object.entries(groupedResults).map(
+    ([position, candidates]) => {
+      if (candidates.length === 0) {
+        return { position, leaders: [] as ResultCandidate[] };
+      }
+
+      const topVotes = candidates[0].vote_count;
+      const leaders = candidates.filter(
+        (candidate) => candidate.vote_count === topVotes,
+      );
+
+      return { position, leaders };
+    },
+  );
+
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
@@ -115,7 +132,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <label className="text-sm font-medium text-slate-700">
                 Filter by Section:
               </label>
@@ -131,12 +148,87 @@ export default function ResultsPage() {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() => setShowWinners((value) => !value)}
+                className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-800"
+              >
+                {showWinners ? "Hide Quick Winners" : "Show Quick Winners"}
+              </button>
+              <Link href="/">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-800"
+                >
+                  Home
+                </button>
+              </Link>
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {showWinners && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              <h2 className="text-xl font-bold text-slate-900">
+                Quick Winners
+              </h2>
+              <span className="text-sm text-slate-500">
+                {selectedSection === "all"
+                  ? "Overall"
+                  : `Section ${selectedSection}`}
+              </span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {quickWinners.map((item) => (
+                <div
+                  key={item.position}
+                  className="rounded-lg border border-slate-200 p-4"
+                >
+                  <p className="text-sm font-semibold text-slate-600">
+                    {item.position}
+                  </p>
+                  {item.leaders.length === 0 ? (
+                    <p className="text-sm text-slate-500 mt-2">
+                      No candidates yet
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {item.leaders.map((leader) => (
+                        <div
+                          key={leader.id}
+                          className="flex items-center gap-3"
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{
+                              backgroundColor: leader.partylist.color_hex,
+                            }}
+                          />
+                          <span className="font-semibold text-slate-900">
+                            {leader.full_name}
+                          </span>
+                          <span className="text-sm text-slate-600">
+                            {leader.vote_count} vote
+                            {leader.vote_count === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      ))}
+                      {item.leaders.length > 1 && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                          Tie
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {Object.entries(groupedResults).map(([position, candidates]) => {
           const maxVotes = Math.max(
             ...candidates.map((candidate) => candidate.vote_count),

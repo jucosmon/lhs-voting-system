@@ -30,20 +30,38 @@ export default function FacilitatorSectionSelect() {
     setSections(data ?? []);
   };
 
+  const sectionsByGrade = sections.reduce<Record<number, Section[]>>(
+    (acc, section) => {
+      if (!acc[section.grade_level]) acc[section.grade_level] = [];
+      acc[section.grade_level].push(section);
+      return acc;
+    },
+    {},
+  );
+
+  const gradeLevels = Object.keys(sectionsByGrade)
+    .map(Number)
+    .sort((a, b) => a - b);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-md">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <UsersRound className="w-8 h-8 text-blue-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Facilitator Portal
-              </h1>
-              <p className="text-sm text-slate-600">
-                Select a section to manage students and voting
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <UsersRound className="w-8 h-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  Facilitator Portal
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Select a section to manage students and voting
+                </p>
+              </div>
             </div>
+            <Link href="/">
+              <Button variant="outline">Home</Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -53,20 +71,29 @@ export default function FacilitatorSectionSelect() {
           <h2 className="text-xl font-bold text-slate-900 mb-4">
             Choose a Section
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sections.map((section) => (
-              <Link
-                key={section.id}
-                href={`/facilitator/${section.id}`}
-                className="rounded-xl border border-slate-200 p-5 hover:shadow-md transition"
-              >
-                <p className="text-lg font-semibold text-slate-900">
-                  {section.name}
-                </p>
-                <p className="text-sm text-slate-600">
-                  Grade {section.grade_level}
-                </p>
-              </Link>
+          <div className="space-y-6">
+            {gradeLevels.map((grade) => (
+              <div key={grade}>
+                <h3 className="text-sm font-semibold text-slate-600 mb-3">
+                  Grade {grade}
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {sectionsByGrade[grade].map((section) => (
+                    <Link
+                      key={section.id}
+                      href={`/facilitator/${section.id}`}
+                      className="rounded-xl border border-slate-200 p-5 hover:shadow-md transition"
+                    >
+                      <p className="text-lg font-semibold text-slate-900">
+                        {section.name}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Section {section.name}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 
