@@ -7,6 +7,7 @@ import StudentRoster from "@/components/admin/StudentRoster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createClient } from "@/lib/supabase/client";
 import { Shield } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -18,6 +19,8 @@ export default function AdminDashboard() {
   const [pin, setPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     const stored = sessionStorage.getItem(ADMIN_KEY);
@@ -42,6 +45,28 @@ export default function AdminDashboard() {
     setPin("");
     setError("");
     sessionStorage.removeItem(ADMIN_KEY);
+  };
+
+  const handleResetVoting = async () => {
+    const confirmed = confirm(
+      "Reset all votes? This will clear vote records and mark all students as not voted.",
+    );
+    if (!confirmed) return;
+
+    setResetting(true);
+
+    await supabase
+      .from("votes")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+
+    await supabase
+      .from("students")
+      .update({ has_voted: false, voted_at: null })
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+
+    setResetting(false);
+    alert("Voting has been reset.");
   };
 
   if (!unlocked) {
@@ -124,6 +149,28 @@ export default function AdminDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-amber-900">
+                Reset Voting Data
+              </h2>
+              <p className="text-sm text-amber-800">
+                Use this after demo runs to clear votes and allow students to
+                vote again.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetVoting}
+              disabled={resetting}
+              className="border-amber-300 text-amber-900 hover:bg-amber-100"
+            >
+              {resetting ? "Resetting..." : "Reset Votes"}
+            </Button>
+          </div>
+        </div>
         <Tabs defaultValue="sections" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-white rounded-lg shadow-sm">
             <TabsTrigger value="sections" className="py-3">
