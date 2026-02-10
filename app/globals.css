@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f6f2;
+  --foreground: #11120f;
+  --surface: #ffffff;
+  --accent: #0f5bff;
+  --accent-strong: #0b3fbe;
+  --accent-soft: #dbe6ff;
+  --highlight: #ffb100;
+  --danger: #b42318;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-highlight: var(--highlight);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-heading);
+  --font-mono: var(--font-body);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-body),
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at top left,
+    #ffffff 0%,
+    #f5f2e8 45%,
+    #e7eef9 100%
+  );
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid #e2e0d8;
+  border-radius: 24px;
+  box-shadow: 0 30px 60px rgba(13, 34, 71, 0.08);
+}
+
+.focus-ring:focus-visible {
+  outline: 4px solid var(--highlight);
+  outline-offset: 2px;
 }
