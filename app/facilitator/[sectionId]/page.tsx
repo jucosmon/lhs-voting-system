@@ -47,7 +47,12 @@ export default function FacilitatorPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [voteFilter, setVoteFilter] = useState("all");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [manageUnlocked, setManageUnlocked] = useState(false);
+  const [managePin, setManagePin] = useState("");
+  const [manageError, setManageError] = useState("");
   const supabase = createClient();
+
+  const manageStorageKey = `lhs-facilitator-manage-${sectionId}`;
 
   useEffect(() => {
     if (!Number.isFinite(sectionId)) return;
@@ -88,6 +93,14 @@ export default function FacilitatorPortal() {
       supabase.removeChannel(votesChannel);
     };
   }, [sectionId]);
+
+  useEffect(() => {
+    if (!Number.isFinite(sectionId)) return;
+    const stored = sessionStorage.getItem(manageStorageKey);
+    setManageUnlocked(stored === "1");
+    setManagePin("");
+    setManageError("");
+  }, [manageStorageKey, sectionId]);
 
   const loadSection = async () => {
     const { data } = await supabase
@@ -170,6 +183,28 @@ export default function FacilitatorPortal() {
     router.push(`/ballot/${studentId}`);
   };
 
+  const handleManageUnlock = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (managePin.trim() === "LHS2025") {
+      sessionStorage.setItem(manageStorageKey, "1");
+      setManageUnlocked(true);
+      setManagePin("");
+      setManageError("");
+    } else {
+      setManageError("Incorrect PIN.");
+    }
+  };
+
+  const handleManageLock = () => {
+    sessionStorage.removeItem(manageStorageKey);
+    setManageUnlocked(false);
+    setManagePin("");
+    setManageError("");
+    setShowAddStudent(false);
+    setEditingStudent(null);
+    setMenuOpenId(null);
+  };
+
   const votedCount = students.filter((student) => student.has_voted).length;
   const totalCount = students.length;
 
@@ -239,21 +274,57 @@ export default function FacilitatorPortal() {
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-600">
-              Add, edit, or remove students before they vote.
-            </p>
-            <Button
-              type="button"
-              size="lg"
-              className="gap-2 px-6"
-              onClick={() => setShowAddStudent((value) => !value)}
-            >
-              <Plus className="w-5 h-5" />
-              {showAddStudent ? "Close" : "Add New Student"}
-            </Button>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-600">
+                {manageUnlocked
+                  ? "Manage mode unlocked. Add, edit, or remove students before they vote."
+                  : "Read-only mode. Enter the facilitator PIN to manage students."}
+              </p>
+            </div>
+
+            {manageUnlocked ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="gap-2 px-6"
+                  onClick={() => setShowAddStudent((value) => !value)}
+                >
+                  <Plus className="w-5 h-5" />
+                  {showAddStudent ? "Close" : "Add New Student"}
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={handleManageLock}
+                >
+                  Lock Management
+                </Button>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleManageUnlock}
+                className="flex flex-col gap-2 sm:flex-row sm:items-center"
+              >
+                <Input
+                  value={managePin}
+                  onChange={(event) => setManagePin(event.target.value)}
+                  placeholder="Enter PIN"
+                  type="password"
+                  className="h-11 w-full sm:w-40"
+                />
+                <Button type="submit" size="lg" className="px-6">
+                  Unlock
+                </Button>
+                {manageError && (
+                  <span className="text-xs text-red-600">{manageError}</span>
+                )}
+              </form>
+            )}
           </div>
 
-          {showAddStudent && (
+          {showAddStudent && manageUnlocked && (
             <form onSubmit={handleAddStudent} className="mt-4 flex gap-2">
               <Input
                 value={newStudentName}
@@ -368,7 +439,7 @@ export default function FacilitatorPortal() {
                 key={student.id}
                 className="p-6 hover:bg-slate-50 transition-colors"
               >
-                {editingStudent === student.id ? (
+                {manageUnlocked && editingStudent === student.id ? (
                   <div className="flex gap-2">
                     <Input
                       defaultValue={student.full_name}
@@ -425,47 +496,49 @@ export default function FacilitatorPortal() {
                           Start Voting
                         </Button>
                       )}
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="lg"
-                          onClick={() =>
-                            setMenuOpenId(
-                              menuOpenId === student.id ? null : student.id,
-                            )
-                          }
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
-                        {menuOpenId === student.id && (
-                          <div className="absolute right-0 mt-2 w-40 rounded-lg border border-slate-200 bg-white shadow-lg z-10">
-                            <button
-                              type="button"
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50"
-                              onClick={() => {
-                                setEditingStudent(student.id);
-                                setMenuOpenId(null);
-                              }}
-                            >
-                              Edit name
-                            </button>
-                            <button
-                              type="button"
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
-                              onClick={() => {
-                                setMenuOpenId(null);
-                                handleDeleteStudent(
-                                  student.id,
-                                  student.has_voted,
-                                );
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {manageUnlocked && (
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="lg"
+                            onClick={() =>
+                              setMenuOpenId(
+                                menuOpenId === student.id ? null : student.id,
+                              )
+                            }
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </Button>
+                          {menuOpenId === student.id && (
+                            <div className="absolute right-0 mt-2 w-40 rounded-lg border border-slate-200 bg-white shadow-lg z-10">
+                              <button
+                                type="button"
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50"
+                                onClick={() => {
+                                  setEditingStudent(student.id);
+                                  setMenuOpenId(null);
+                                }}
+                              >
+                                Edit name
+                              </button>
+                              <button
+                                type="button"
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
+                                onClick={() => {
+                                  setMenuOpenId(null);
+                                  handleDeleteStudent(
+                                    student.id,
+                                    student.has_voted,
+                                  );
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
