@@ -22,8 +22,8 @@ export default function Home() {
             </h1>
             <p className="max-w-2xl text-lg text-neutral-700">
               A focused, kiosk-ready system for LHS SSLG elections. Manage
-              sections, enroll students, run ballots, and view live results in
-              one place.
+              sections and students, run ballots, and view live results in one
+              place.
             </p>
           </div>
           <div className="rounded-3xl border border-neutral-200 bg-white/80 p-6">
